@@ -17,7 +17,7 @@ def face_confidence(face_distance, face_match_threshold=0.6):
         return str(round(value, 2)) + '%'
 
 
-class FaceRecognition:
+class reconnaisance:
     face_locations = []
     face_encodings = []
     face_names = []
@@ -103,5 +103,5 @@ class FaceRecognition:
 
 
 if __name__ == '__main__':
-    fr = FaceRecognition()
+    fr = reconnaisance()
     fr.run_recognition()
