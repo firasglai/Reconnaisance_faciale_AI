@@ -1,107 +1,90 @@
 import face_recognition
-import os, sys
 import cv2
 import numpy as np
-import math
 
 
+video_capture = cv2.VideoCapture(0)
 
-def face_confidence(face_distance, face_match_threshold=0.6):
-    range = (1.0 - face_match_threshold)
-    linear_val = (1.0 - face_distance) / (range * 2.0)
+# Chargez une image d'exemple et apprenez à la reconnaître.
+obama_image = face_recognition.load_image_file("dataset/cristiano.jpg")
+obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
 
-    if face_distance > face_match_threshold:
-        return str(round(linear_val * 100, 2)) + '%'
-    else:
-        value = (linear_val + ((1.0 - linear_val) * math.pow((linear_val - 0.5) * 2, 0.2))) * 100
-        return str(round(value, 2)) + '%'
+# Chargez une deuxième image d'exemple et apprenez à la reconnaître.
+biden_image = face_recognition.load_image_file("dataset/messi.jpg")
+biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
 
+# Créer des tableaux d'encodages de visage connus et leurs noms
+known_face_encodings = [
+    obama_face_encoding,
+    biden_face_encoding
+]
+known_face_names = [
+    "Barack Obama",
+    "Joe Biden"
+]
 
-class reconnaisance:
-    face_locations = []
-    face_encodings = []
-    face_names = []
-    known_face_encodings = []
-    known_face_names = []
-    process_current_frame = True
+# Initialiser certaines variables
+face_locations = []
+face_encodings = []
+face_names = []
+process_this_frame = True
 
-    def __init__(self):
-        self.encode_faces()
+while True:
+    # Prenez une seule image de vidéo
+    ret, frame = video_capture.read()
 
-    def encode_faces(self):
-        for image in os.listdir('dataset'):
-            face_image = face_recognition.load_image_file(f"dataset/{image}")
-            face_encoding = face_recognition.face_encodings(face_image)[0]
+    # Ne traitez que toutes les autres images de la vidéo pour gagner du temps
+    if process_this_frame:
+        # Redimensionnez le cadre de la vidéo à 1/4 pour un traitement plus rapide de la reconnaissance faciale
+        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
-            self.known_face_encodings.append(face_encoding)
-            self.known_face_names.append(image)
-        print(self.known_face_names)
+        # Convertir l'image de la couleur BGR (qu'OpenCV utilise) en couleur RVB (que face_recognition utilise)
+        rgb_small_frame = small_frame[:, :, ::-1]
+        
+        # Trouver tous les visages et encodages de visage dans l'image actuelle de la vidéo
+        face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-    def run_recognition(self):
-        video_capture = cv2.VideoCapture(0)
+        face_names = []
+        for face_encoding in face_encodings:
+            # Voir si le visage correspond au(x) visage(s) connu(s)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            name = "Unknown"
 
-        if not video_capture.isOpened():
-            sys.exit('Pas de Video source...')
+        #utiliser la face connue avec la plus petite distance à la nouvelle face
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+            best_match_index = np.argmin(face_distances)
+            if matches[best_match_index]:
+                name = known_face_names[best_match_index]
 
-        while True:
-            ret, frame = video_capture.read()
+            face_names.append(name)
 
-           
-            if self.process_current_frame:
-                
-                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-
-                
-                rgb_small_frame = small_frame[:, :, ::-1]
-
-                
-                self.face_locations = face_recognition.face_locations(rgb_small_frame)
-                self.face_encodings = face_recognition.face_encodings(rgb_small_frame, self.face_locations)
-
-                self.face_names = []
-                for face_encoding in self.face_encodings:
-                    
-                    matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
-                    name = "non reconnu"
-                    confidence = '?'
-
-                    
-                    face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-
-                    best_match_index = np.argmin(face_distances)
-                    if matches[best_match_index]:
-                        name = self.known_face_names[best_match_index]
-                        confidence = face_confidence(face_distances[best_match_index])
-
-                    self.face_names.append(f'{name} ({confidence})')
-
-            self.process_current_frame = not self.process_current_frame
-
-           
-            for (top, right, bottom, left), name in zip(self.face_locations, self.face_names):
-                
-                top *= 4
-                right *= 4
-                bottom *= 4
-                left *= 4
-
-               
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-                cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-                cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
-
-          
-            cv2.imshow('Reconnaisance Faciale', frame)
-
-            
-            if cv2.waitKey(1) == ord('q'):
-                break
-
-       
-        video_capture.release()
-        cv2.destroyAllWindows()
+    process_this_frame = not process_this_frame
 
 
-if __name__ == '__main__':
-    fr = reconnaisance()
-    fr.run_recognition()
+    # Afficher les résultats
+    for (top, right, bottom, left), name in zip(face_locations, face_names):
+        # Mettre à l'échelle les emplacements des visages puisque le cadre dans lequel nous avons détecté a été mis à l'échelle à 1/4
+        top *= 4
+        right *= 4
+        bottom *= 4
+        left *= 4
+
+        # Dessinez un cadre autour du visage
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+
+        # Dessinez une étiquette avec un nom sous le visage
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+
+    # Afficher l'image résultante
+    cv2.imshow('Reconnaisance Faciale', frame)
+
+    # Appuyez sur 'q' sur le clavier pour quitter !
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+
+video_capture.release()
+cv2.destroyAllWindows()
