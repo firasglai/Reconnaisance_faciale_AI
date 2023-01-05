@@ -6,21 +6,21 @@ import numpy as np
 video_capture = cv2.VideoCapture(0)
 
 # Chargez une image d'exemple et apprenez à la reconnaître.
-obama_image = face_recognition.load_image_file("dataset/cristiano.jpg")
-obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
+cristiano_image = face_recognition.load_image_file("dataset/cristiano.jpg")
+cristiano_face_encoding = face_recognition.face_encodings(cristiano_image)[0]
 
 # Chargez une deuxième image d'exemple et apprenez à la reconnaître.
-biden_image = face_recognition.load_image_file("dataset/messi.jpg")
-biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
+messi_image = face_recognition.load_image_file("dataset/messi.jpg")
+messi_face_encoding = face_recognition.face_encodings(messi_image)[0]
 
 # Créer des tableaux d'encodages de visage connus et leurs noms
 known_face_encodings = [
-    obama_face_encoding,
-    biden_face_encoding
+    cristiano_face_encoding,
+    messi_face_encoding
 ]
 known_face_names = [
-    "Barack Obama",
-    "Joe Biden"
+    "Cristiano Ronaldo",
+    "Lionel Messi"
 ]
 
 # Initialiser certaines variables
